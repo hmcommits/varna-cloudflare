@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "varna-store",
+  "name": "varna-cloudflare",
   "main": "./dist/_worker.js/index.js",
   "compatibility_date": "2026-08-04",
   "compatibility_flags": [
@@ -9,6 +9,9 @@
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS"
+  },
+  "vars": {
+    "NODE_VERSION": "20"
   },
   "observability": {
     "enabled": true
