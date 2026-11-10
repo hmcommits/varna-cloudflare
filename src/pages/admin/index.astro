@@ -1,0 +1,14 @@
+---
+import Layout from '@/layouts/Layout.astro'
+import AdminPage from '@/components/pages/AdminPage'
+
+export const prerender = false
+---
+
+<Layout
+  title="Varna Command Vault | Administrative Control Plane"
+  description="Administrative dashboard for Varna Studio operations."
+  noIndex={true}
+>
+  <AdminPage client:load />
+</Layout>

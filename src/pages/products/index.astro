@@ -1,0 +1,46 @@
+---
+import Layout from '@/layouts/Layout.astro'
+import ProductsPage from '@/components/pages/ProductsPage'
+import { getAllProducts, getSiteUrl } from '@/lib/serverStore'
+
+export const prerender = false
+
+const siteUrl = getSiteUrl(Astro.url.origin)
+const products = await getAllProducts()
+
+const itemListSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'ItemList',
+  name: 'Varna Studio Collection',
+  description: 'Complete collection of premium custom apparel & everyday wear',
+  url: `${siteUrl}/products`,
+  numberOfItems: products.length,
+  itemListElement: products.map((p, index) => ({
+    '@type': 'ListItem',
+    position: index + 1,
+    item: {
+      '@type': 'Product',
+      name: p.name,
+      url: `${siteUrl}/products/${p.id}`,
+      image:
+        (typeof p.colors?.[0] === 'object' && p.colors?.[0]?.image) ||
+        `${siteUrl}/images/banners/men-banner.webp`,
+      offers: {
+        '@type': 'Offer',
+        price: p.price,
+        priceCurrency: 'INR',
+        availability: 'https://schema.org/InStock',
+      },
+    },
+  })),
+}
+---
+
+<Layout
+  title="All Products & Collections | Custom Apparel & Fits | Varna"
+  description="Browse the full Varna studio catalog: linen shirts, graphic tees, custom jerseys, hoodies & everyday elevated fits. Handcrafted in Bengaluru, delivered nationwide."
+  canonicalUrl={`${siteUrl}/products`}
+  structuredData={itemListSchema}
+>
+  <ProductsPage client:load />
+</Layout>

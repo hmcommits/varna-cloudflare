@@ -1,0 +1,128 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-script: 'Alex Brush', cursive;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: #faf8f4;
+  color: #1a1a1a;
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-script {
+  font-family: var(--font-script), cursive;
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Trending ticker marquee animation */
+@keyframes ticker {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.ticker-animate {
+  display: flex;
+  width: max-content;
+  animation: ticker 32s linear infinite;
+}
+
+.ticker-animate:hover {
+  animation-play-state: paused;
+}
+
+/* Trust Badges mobile marquee animation */
+@keyframes badgesMarquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.badges-marquee {
+  display: flex;
+  width: max-content;
+  animation: badgesMarquee 22s linear infinite;
+}
+
+.badges-marquee:hover,
+.badges-marquee:active {
+  animation-play-state: paused;
+}
+
+/* TopBar announcement marquee animation for mobile */
+@keyframes topbarMarquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.topbar-marquee {
+  display: flex;
+  width: max-content;
+  animation: topbarMarquee 20s linear infinite;
+}
+
+.topbar-marquee:hover,
+.topbar-marquee:active {
+  animation-play-state: paused;
+}
+
+/* Authentic Indian Mughal Pointed Arch Clip Path */
+.mughal-arch-clip {
+  clip-path: url(#mughal-arch-shape);
+}
+
+/* Gentle low-frequency WhatsApp button ambient breathing glow */
+@keyframes whatsappGentleGlow {
+  0%, 60%, 100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+  80% {
+    transform: scale(1.22);
+    opacity: 0.55;
+  }
+}
+
+.whatsapp-gentle-glow {
+  animation: whatsappGentleGlow 3.8s ease-in-out infinite;
+}
+
+/* Unique orbital bubble timer animation for hero slider */
+@keyframes slideProgress {
+  from {
+    stroke-dashoffset: 59.69;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.animate-slide-progress {
+  animation: slideProgress 6.5s linear forwards;
+}

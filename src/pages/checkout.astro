@@ -1,0 +1,13 @@
+---
+import Layout from '@/layouts/Layout.astro'
+import CheckoutPage from '@/components/pages/CheckoutPage'
+
+export const prerender = false
+---
+
+<Layout
+  title="Secure Delivery & Checkout | Varna – Custom Wear & Prints"
+  description="Enter your Indian delivery address and complete your order with direct WhatsApp concierge assistance and verified Pan-India delivery."
+>
+  <CheckoutPage client:load />
+</Layout>

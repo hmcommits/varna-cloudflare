@@ -1,0 +1,14 @@
+---
+import Layout from '@/layouts/Layout.astro'
+import AdminLoginPage from '@/components/pages/AdminLoginPage'
+
+export const prerender = false
+---
+
+<Layout
+  title="Admin Authentication | Varna Studio"
+  description="Master passcode gateway to Varna administrative vault."
+  noIndex={true}
+>
+  <AdminLoginPage client:load />
+</Layout>

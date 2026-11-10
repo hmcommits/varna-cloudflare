@@ -1,0 +1,13 @@
+---
+import Layout from '@/layouts/Layout.astro'
+import CartPage from '@/components/pages/CartPage'
+
+export const prerender = false
+---
+
+<Layout
+  title="Your Shopping Bag | Varna – Custom Wear & Prints"
+  description="Review your selected apparel, choose sizes and colors, and proceed to direct WhatsApp checkout for Pan-India express delivery."
+>
+  <CartPage client:load />
+</Layout>

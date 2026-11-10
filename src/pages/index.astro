@@ -1,0 +1,13 @@
+---
+import Layout from '@/layouts/Layout.astro'
+import HomePage from '@/components/pages/HomePage'
+
+export const prerender = false
+---
+
+<Layout
+  title="Varna – Wear Your Colors | Custom Wear, Linen Shirts & Drops"
+  description="Shop handcrafted linen shirts, oversized tees, custom jerseys and streetwear. Tailored comfort, personalized prints, and direct WhatsApp concierge ordering in India."
+>
+  <HomePage client:load />
+</Layout>

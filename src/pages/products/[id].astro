@@ -1,0 +1,54 @@
+---
+import Layout from '@/layouts/Layout.astro'
+import ProductDetailPage from '@/components/pages/ProductDetailPage'
+import { getProductById, getSiteUrl } from '@/lib/serverStore'
+
+export const prerender = false
+
+const { id } = Astro.params
+const siteUrl = getSiteUrl(Astro.url.origin)
+const product = await getProductById(id || '')
+
+const primaryImage =
+  (typeof product?.colors?.[0] === 'object' && product?.colors?.[0]?.image) ||
+  'https://res.cloudinary.com/o6jv6xte/image/upload/v1793532655/varna_store/products/linen-shirt-terracotta.webp'
+
+const title = product ? `${product.name} | Varna` : 'Product Details | Varna'
+const description =
+  product?.description?.slice(0, 155) ||
+  `Order ${product?.name || 'apparel'} at Varna for ₹${product?.price || 0}. Premium custom wear, tailored comfort & instant WhatsApp concierge.`
+
+const productSchema = product
+  ? {
+      '@context': 'https://schema.org',
+      '@type': 'Product',
+      name: product.name,
+      image: [primaryImage],
+      description: product.description || `${product.name} crafted by Varna.`,
+      sku: product.id,
+      brand: {
+        '@type': 'Brand',
+        name: 'Varna',
+      },
+      offers: {
+        '@type': 'Offer',
+        url: `${siteUrl}/products/${product.id}`,
+        priceCurrency: 'INR',
+        price: product.price,
+        availability: 'https://schema.org/InStock',
+        itemCondition: 'https://schema.org/NewCondition',
+      },
+    }
+  : undefined
+---
+
+<Layout
+  title={title}
+  description={description}
+  ogImage={primaryImage}
+  ogType="article"
+  canonicalUrl={`${siteUrl}/products/${id}`}
+  structuredData={productSchema}
+>
+  <ProductDetailPage productId={id} client:load />
+</Layout>
