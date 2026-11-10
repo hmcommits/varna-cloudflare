@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { StoreState, EnquiryItem } from '@/types/store'
 import { defaultStoreData } from '@/data/defaultStoreData'
 
-const LOCAL_STORAGE_KEY = 'varna_store_data_v3'
+const LOCAL_STORAGE_KEY = 'varna_store_data_v4'
 
 const OLD_LOGOS = [
   'varna-emblem.webp',
