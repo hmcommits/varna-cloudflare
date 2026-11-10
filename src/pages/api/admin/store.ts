@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro'
-import { getMongoDb } from '@/lib/mongodb'
+import { getMongoDb, getLastMongoError } from '@/lib/mongodb'
 import { defaultStoreData } from '@/data/defaultStoreData'
 import { StoreState } from '@/types/store'
 import { getEnvVar } from '@/lib/env'
@@ -149,9 +149,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
 
     if (!db) {
+      const detail = getLastMongoError() || 'Could not establish connection to MongoDB Atlas. Ensure 0.0.0.0/0 is enabled in Atlas Network Access.'
       return new Response(
         JSON.stringify({
-          error: 'Database unavailable: Could not establish connection to MongoDB Atlas. Ensure MONGODB_URI is configured and 0.0.0.0/0 is enabled in Atlas Network Access.',
+          error: `Database unavailable: ${detail}`,
         }),
         {
           status: 503,
