@@ -9,7 +9,7 @@ function clamp(val: string | undefined, maxLen: number, fallback: string): strin
   return v.length > maxLen ? v.slice(0, maxLen) : v
 }
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, locals }) => {
   try {
     const body: Partial<EnquiryItem> = await request.json()
 
@@ -51,7 +51,7 @@ export const POST: APIRoute = async ({ request }) => {
       status: body.status || 'New',
     }
 
-    const db = await getMongoDb()
+    const db = await getMongoDb(5000, locals)
     if (db) {
       await db.collection('enquiries').insertOne(newEnquiry)
       await db.collection('config').updateOne(
@@ -73,7 +73,7 @@ export const POST: APIRoute = async ({ request }) => {
   }
 }
 
-export const PATCH: APIRoute = async ({ request }) => {
+export const PATCH: APIRoute = async ({ request, locals }) => {
   try {
     const { id, status, completed } = await request.json()
     if (!id) {
@@ -87,7 +87,7 @@ export const PATCH: APIRoute = async ({ request }) => {
     if (status !== undefined) updateFields.status = status
     if (completed !== undefined) updateFields.completed = completed
 
-    const db = await getMongoDb()
+    const db = await getMongoDb(5000, locals)
     if (db) {
       await db.collection('enquiries').updateOne({ id }, { $set: updateFields })
       await db.collection('config').updateOne(
@@ -114,7 +114,7 @@ export const PATCH: APIRoute = async ({ request }) => {
   }
 }
 
-export const DELETE: APIRoute = async ({ request }) => {
+export const DELETE: APIRoute = async ({ request, locals }) => {
   try {
     const url = new URL(request.url)
     const id = url.searchParams.get('id')
@@ -125,7 +125,7 @@ export const DELETE: APIRoute = async ({ request }) => {
       })
     }
 
-    const db = await getMongoDb()
+    const db = await getMongoDb(5000, locals)
     if (db) {
       await db.collection('enquiries').deleteOne({ id })
       await db.collection('config').updateOne(

@@ -6,7 +6,7 @@ import { getAllProducts, getSiteUrl } from '@/lib/serverStore'
 export const prerender = false
 
 const siteUrl = getSiteUrl(Astro.url.origin)
-const products = await getAllProducts()
+const products = await getAllProducts(Astro.locals)
 
 const itemListSchema = {
   '@context': 'https://schema.org',

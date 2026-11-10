@@ -1,12 +1,4 @@
-function getEnv(key: string): string {
-  if (typeof process !== 'undefined' && process.env && process.env[key]) {
-    return process.env[key] as string
-  }
-  if (typeof import.meta !== 'undefined' && (import.meta as any).env && (import.meta as any).env[key]) {
-    return (import.meta as any).env[key] as string
-  }
-  return ''
-}
+import { getEnvVar } from '@/lib/env'
 
 async function sha1Hex(message: string): Promise<string> {
   const enc = new TextEncoder()
@@ -16,11 +8,11 @@ async function sha1Hex(message: string): Promise<string> {
   return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
 }
 
-export function isCloudinaryConfigured(): boolean {
-  const cloudName = getEnv('CLOUDINARY_CLOUD_NAME')
-  const apiKey = getEnv('CLOUDINARY_API_KEY')
-  const apiSecret = getEnv('CLOUDINARY_API_SECRET')
-  const cloudinaryUrl = getEnv('CLOUDINARY_URL')
+export function isCloudinaryConfigured(source?: any): boolean {
+  const cloudName = getEnvVar('CLOUDINARY_CLOUD_NAME', source)
+  const apiKey = getEnvVar('CLOUDINARY_API_KEY', source)
+  const apiSecret = getEnvVar('CLOUDINARY_API_SECRET', source)
+  const cloudinaryUrl = getEnvVar('CLOUDINARY_URL', source)
 
   return Boolean((cloudName && apiKey && apiSecret) || cloudinaryUrl)
 }
@@ -44,12 +36,13 @@ function parseCloudinaryUrl(url: string): { cloudName: string; apiKey: string; a
 
 export async function processAndUploadImage(
   fileBlob: Blob | File | ArrayBuffer,
-  originalFilename: string
+  originalFilename: string,
+  source?: any
 ): Promise<{ url: string; provider: 'cloudinary' }> {
-  let cloudName = getEnv('CLOUDINARY_CLOUD_NAME')
-  let apiKey = getEnv('CLOUDINARY_API_KEY')
-  let apiSecret = getEnv('CLOUDINARY_API_SECRET')
-  const cloudinaryUrl = getEnv('CLOUDINARY_URL')
+  let cloudName = getEnvVar('CLOUDINARY_CLOUD_NAME', source)
+  let apiKey = getEnvVar('CLOUDINARY_API_KEY', source)
+  let apiSecret = getEnvVar('CLOUDINARY_API_SECRET', source)
+  const cloudinaryUrl = getEnvVar('CLOUDINARY_URL', source)
 
   if ((!cloudName || !apiKey || !apiSecret) && cloudinaryUrl) {
     const parsed = parseCloudinaryUrl(cloudinaryUrl)
@@ -78,7 +71,6 @@ export async function processAndUploadImage(
   const eager = 'c_limit,w_1600,h_1600,f_webp,q_85'
 
   // Parameters to sign (sorted alphabetically): eager, folder, public_id, timestamp
-  // Cloudinary signature requires: eager=...&folder=...&public_id=...&timestamp=... + apiSecret
   const signParams = [
     `eager=${eager}`,
     `folder=${folder}`,
@@ -115,7 +107,6 @@ export async function processAndUploadImage(
   }
 
   const data: any = await res.json()
-  // If eager transformation completed, return eager URL or secure_url
   const finalUrl =
     (Array.isArray(data.eager) && data.eager[0]?.secure_url) ||
     data.secure_url ||

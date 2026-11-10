@@ -1,18 +1,11 @@
 import type { APIRoute } from 'astro'
 import { getMongoDb } from '@/lib/mongodb'
 import { defaultStoreData } from '@/data/defaultStoreData'
+import { getEnvVar } from '@/lib/env'
 
 export const prerender = false
 
-function getEnv(key: string): string {
-  return (
-    (typeof process !== 'undefined' && process.env?.[key]) ||
-    (typeof import.meta !== 'undefined' && (import.meta as any).env?.[key]) ||
-    ''
-  ).trim()
-}
-
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, locals }) => {
   try {
     const { passcode } = await request.json()
 
@@ -24,15 +17,15 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     const inputPasscode = passcode.trim()
-    const masterSecret = getEnv('ADMIN_SECRET_KEY') || getEnv('ADMIN_SECRET')
+    const masterSecret = getEnvVar('ADMIN_SECRET_KEY', locals) || getEnvVar('ADMIN_SECRET', locals)
 
     // 1. Master Secret Override
     const isMaster = Boolean(masterSecret && inputPasscode === masterSecret)
 
     // 2. Resolve store-configured passcode
-    let storePasscode = getEnv('ADMIN_PASSCODE')
+    let storePasscode = getEnvVar('ADMIN_PASSCODE', locals)
     if (!storePasscode) {
-      const db = await getMongoDb()
+      const db = await getMongoDb(5000, locals)
       if (db) {
         const config = await db.collection('config').findOne({ _id: 'store_config' as any })
         storePasscode =

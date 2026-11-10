@@ -7,7 +7,7 @@ export const prerender = false
 
 const { id } = Astro.params
 const siteUrl = getSiteUrl(Astro.url.origin)
-const product = await getProductById(id || '')
+const product = await getProductById(id || '', Astro.locals)
 
 const primaryImage =
   (typeof product?.colors?.[0] === 'object' && product?.colors?.[0]?.image) ||

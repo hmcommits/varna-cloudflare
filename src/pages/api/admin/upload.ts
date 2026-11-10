@@ -2,20 +2,13 @@ import type { APIRoute } from 'astro'
 import { processAndUploadImage } from '@/lib/cloudinary'
 import { getMongoDb } from '@/lib/mongodb'
 import { defaultStoreData } from '@/data/defaultStoreData'
+import { getEnvVar } from '@/lib/env'
 
 export const prerender = false
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB limit
 
-function getEnv(key: string): string {
-  return (
-    (typeof process !== 'undefined' && process.env?.[key]) ||
-    (typeof import.meta !== 'undefined' && (import.meta as any).env?.[key]) ||
-    ''
-  ).trim()
-}
-
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, locals }) => {
   try {
     // 1. Auth check
     const providedToken =
@@ -23,11 +16,11 @@ export const POST: APIRoute = async ({ request }) => {
       request.headers.get('authorization')?.replace(/^Bearer\s+/i, '')
 
     const token = (providedToken || '').trim()
-    const masterSecret = getEnv('ADMIN_SECRET_KEY') || getEnv('ADMIN_SECRET')
+    const masterSecret = getEnvVar('ADMIN_SECRET_KEY', locals) || getEnvVar('ADMIN_SECRET', locals)
     const isMaster = Boolean(masterSecret && token === masterSecret)
 
-    const db = await getMongoDb()
-    let storePasscode = getEnv('ADMIN_PASSCODE')
+    const db = await getMongoDb(5000, locals)
+    let storePasscode = getEnvVar('ADMIN_PASSCODE', locals)
 
     if (!storePasscode) {
       if (db) {
@@ -58,35 +51,15 @@ export const POST: APIRoute = async ({ request }) => {
     const file = formData.get('file') as File | null
 
     if (!file) {
-      return new Response(JSON.stringify({ error: 'No file provided' }), {
+      return new Response(JSON.stringify({ error: 'No image file provided' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
       })
     }
 
-    // 3. File size limit
     if (file.size > MAX_FILE_SIZE) {
       return new Response(
-        JSON.stringify({
-          error: `File size (${(file.size / (1024 * 1024)).toFixed(1)}MB) exceeds the 10MB limit.`,
-        }),
-        {
-          status: 413,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      )
-    }
-
-    // 4. File type check
-    const isImage =
-      (file.type && file.type.startsWith('image/')) ||
-      Boolean(file.name.match(/\.(jpe?g|png|webp|heic|heif|avif|gif|svg|tiff?|bmp|jfif)$/i))
-
-    if (!isImage) {
-      return new Response(
-        JSON.stringify({
-          error: 'Invalid file format. Please upload a valid image file.',
-        }),
+        JSON.stringify({ error: 'File size exceeds maximum allowed limit (10MB)' }),
         {
           status: 400,
           headers: { 'Content-Type': 'application/json' },
@@ -94,15 +67,15 @@ export const POST: APIRoute = async ({ request }) => {
       )
     }
 
-    // 5. Upload to Cloudinary with WebP & 1600px transformation
-    const result = await processAndUploadImage(file, file.name)
+    // 3. Upload to Cloudinary with Edge HMAC-SHA1 Web Crypto
+    const result = await processAndUploadImage(file, file.name, locals)
 
     return new Response(
       JSON.stringify({
-        success: true,
         url: result.url,
         provider: result.provider,
-        format: 'webp',
+        filename: file.name,
+        size: file.size,
       }),
       {
         status: 200,
@@ -110,10 +83,13 @@ export const POST: APIRoute = async ({ request }) => {
       }
     )
   } catch (err: any) {
-    console.error('Image upload failed:', err)
-    return new Response(JSON.stringify({ error: err.message || 'Image processing failed' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    })
+    console.error('Upload API failure:', err)
+    return new Response(
+      JSON.stringify({ error: err.message || 'Image processing and upload failed' }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    )
   }
 }

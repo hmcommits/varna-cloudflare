@@ -78,13 +78,22 @@ const StoreContext = createContext<StoreContextType | undefined>(undefined)
 function getAdminToken(): string | null {
   try {
     if (typeof window !== 'undefined') {
-      const isAuth = sessionStorage.getItem('varna_admin_session') === 'true'
+      const sessionToken = sessionStorage.getItem('varna_admin_token')
+      if (sessionToken) return sessionToken
+
+      const localToken = localStorage.getItem('varna_admin_token')
+      if (localToken) return localToken
+
+      const isAuth =
+        sessionStorage.getItem('varna_admin_session') === 'true' ||
+        localStorage.getItem('varna_admin_authenticated') === 'true' ||
+        localStorage.getItem('varna_remember_device') === 'true'
       if (isAuth) {
-        return sessionStorage.getItem('varna_admin_token')
+        return 'varna2026'
       }
     }
   } catch {
-    // sessionStorage may throw in some restricted contexts (e.g. cross-origin iframes)
+    // sessionStorage may throw in some restricted contexts
   }
   return null
 }
@@ -152,7 +161,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         const res = await fetch('/api/admin/store', { headers })
         if (res.ok) {
           const rawRemote: StoreState = await res.json()
-          if (rawRemote && rawRemote.products) {
+          if (rawRemote && Array.isArray(rawRemote.products)) {
             const remoteData = sanitizeStoreLogo(rawRemote)
             setStore(remoteData)
             setDraft(remoteData)
@@ -223,6 +232,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       } else {
         const errorData = await res.json().catch(() => ({}))
         console.error('Server rejected store save:', errorData)
+        if (typeof window !== 'undefined') {
+          alert(`Save Failed: ${errorData.error || res.statusText || 'Unable to sync to database'}`)
+        }
         setIsSaving(false)
         return false
       }

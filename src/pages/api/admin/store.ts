@@ -2,19 +2,12 @@ import type { APIRoute } from 'astro'
 import { getMongoDb } from '@/lib/mongodb'
 import { defaultStoreData } from '@/data/defaultStoreData'
 import { StoreState } from '@/types/store'
+import { getEnvVar } from '@/lib/env'
 
 export const prerender = false
 
 let inMemoryStoreCache: { data: any; timestamp: number } | null = null
 const CACHE_TTL_MS = 30 * 1000
-
-function getEnv(key: string): string {
-  return (
-    (typeof process !== 'undefined' && process.env?.[key]) ||
-    (typeof import.meta !== 'undefined' && (import.meta as any).env?.[key]) ||
-    ''
-  ).trim()
-}
 
 function sanitizeForPublic(data: any): any {
   const sanitized = { ...data }
@@ -25,10 +18,10 @@ function sanitizeForPublic(data: any): any {
   return sanitized
 }
 
-function isAuthenticated(providedToken: string | null, storePasscode: string): boolean {
+function isAuthenticated(providedToken: string | null, storePasscode: string, locals?: any): boolean {
   if (!providedToken) return false
   const token = providedToken.trim()
-  const masterSecret = getEnv('ADMIN_SECRET_KEY') || getEnv('ADMIN_SECRET')
+  const masterSecret = getEnvVar('ADMIN_SECRET_KEY', locals) || getEnvVar('ADMIN_SECRET', locals)
   if (masterSecret && token === masterSecret) {
     return true
   }
@@ -36,7 +29,7 @@ function isAuthenticated(providedToken: string | null, storePasscode: string): b
   return token === storePasscode.trim()
 }
 
-export const GET: APIRoute = async ({ request }) => {
+export const GET: APIRoute = async ({ request, locals }) => {
   try {
     const providedToken =
       request.headers.get('x-admin-token') ||
@@ -53,7 +46,7 @@ export const GET: APIRoute = async ({ request }) => {
       })
     }
 
-    const db = await getMongoDb()
+    const db = await getMongoDb(5000, locals)
     let storeData: any = null
 
     if (db) {
@@ -76,12 +69,12 @@ export const GET: APIRoute = async ({ request }) => {
     }
 
     const storePasscode =
-      getEnv('ADMIN_PASSCODE') ||
+      getEnvVar('ADMIN_PASSCODE', locals) ||
       storeData?.settings?.passcode ||
       defaultStoreData.settings.passcode ||
       'varna2026'
 
-    const isAdmin = isAuthenticated(providedToken || null, storePasscode)
+    const isAdmin = isAuthenticated(providedToken || null, storePasscode, locals)
 
     // Ensure stale logos are replaced
     if (
@@ -118,19 +111,19 @@ export const GET: APIRoute = async ({ request }) => {
   }
 }
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, locals }) => {
   try {
     const providedToken =
       request.headers.get('x-admin-token') ||
       request.headers.get('authorization')?.replace(/^Bearer\s+/i, '')
 
     const token = (providedToken || '').trim()
-    const masterSecret = getEnv('ADMIN_SECRET_KEY') || getEnv('ADMIN_SECRET')
+    const masterSecret = getEnvVar('ADMIN_SECRET_KEY', locals) || getEnvVar('ADMIN_SECRET', locals)
     const isMaster = Boolean(masterSecret && token === masterSecret)
 
-    const db = await getMongoDb(8000)
+    const db = await getMongoDb(8000, locals)
 
-    let storePasscode = getEnv('ADMIN_PASSCODE')
+    let storePasscode = getEnvVar('ADMIN_PASSCODE', locals)
     if (!storePasscode) {
       if (db) {
         const existing = await db.collection('config').findOne({ _id: 'store_config' as any })
@@ -155,29 +148,35 @@ export const POST: APIRoute = async ({ request }) => {
       )
     }
 
+    if (!db) {
+      return new Response(
+        JSON.stringify({
+          error: 'Database unavailable: Could not establish connection to MongoDB Atlas. Ensure MONGODB_URI is configured and 0.0.0.0/0 is enabled in Atlas Network Access.',
+        }),
+        {
+          status: 503,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      )
+    }
+
     const body: StoreState = await request.json()
     body.lastUpdated = new Date().toISOString()
 
-    let savedToMongo = false
+    await db.collection('config').updateOne(
+      { _id: 'store_config' as any },
+      { $set: { ...body, _id: 'store_config' } },
+      { upsert: true }
+    )
 
-    if (db) {
-      await db.collection('config').updateOne(
-        { _id: 'store_config' as any },
-        { $set: { ...body, _id: 'store_config' } },
-        { upsert: true }
-      )
-      savedToMongo = true
-    } else {
-      console.warn('MongoDB Atlas temporarily unavailable during POST /api/admin/store')
-    }
-
+    // Clear public cache immediately so storefront sees fresh products
     inMemoryStoreCache = null
 
     return new Response(
       JSON.stringify({
         success: true,
         timestamp: body.lastUpdated,
-        storage: savedToMongo ? 'mongodb-atlas' : 'edge-memory',
+        storage: 'mongodb-atlas',
       }),
       {
         status: 200,

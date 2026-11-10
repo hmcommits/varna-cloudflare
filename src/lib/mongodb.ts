@@ -1,11 +1,8 @@
 import { MongoClient, Db } from 'mongodb'
+import { getEnvVar } from '@/lib/env'
 
-function getMongoUri(): string | undefined {
-  return (
-    (typeof process !== 'undefined' && process.env?.MONGODB_URI) ||
-    (typeof import.meta !== 'undefined' && (import.meta as any).env?.MONGODB_URI) ||
-    ''
-  )
+export function getMongoUri(source?: any): string {
+  return getEnvVar('MONGODB_URI', source)
 }
 
 const options = {
@@ -21,21 +18,29 @@ declare global {
   var _mongoClientPromise: Promise<MongoClient> | undefined
   // eslint-disable-next-line no-var
   var _mongoLastFailedAttempt: number | undefined
+  // eslint-disable-next-line no-var
+  var _mongoActiveUri: string | undefined
 }
 
-export function isMongoConfigured(): boolean {
-  const uri = getMongoUri()
+export function isMongoConfigured(source?: any): boolean {
+  const uri = getMongoUri(source)
   return Boolean(uri && uri.startsWith('mongodb'))
 }
 
 // 45-second circuit breaker cooldown after an Atlas connection failure
 const COOLDOWN_PERIOD_MS = 45 * 1000
 
-export async function getMongoDb(timeoutMs = 5000): Promise<Db | null> {
-  const uri = getMongoUri()
-  if (!uri || !isMongoConfigured()) {
+export async function getMongoDb(timeoutMs = 5000, source?: any): Promise<Db | null> {
+  const uri = getMongoUri(source)
+  if (!uri || !isMongoConfigured(source)) {
     return null
   }
+
+  // Reset cached client if URI changed dynamically
+  if (globalThis._mongoActiveUri && globalThis._mongoActiveUri !== uri) {
+    globalThis._mongoClientPromise = undefined
+  }
+  globalThis._mongoActiveUri = uri
 
   // Fast-fail if circuit breaker is open
   const lastFail = globalThis._mongoLastFailedAttempt || 0
