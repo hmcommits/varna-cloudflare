@@ -101,7 +101,6 @@ const options = {
   serverSelectionTimeoutMS: 8000,
   connectTimeoutMS: 8000,
   tls: true,
-  tlsAllowInvalidCertificates: true,
 }
 
 declare global {
